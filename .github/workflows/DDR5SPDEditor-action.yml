@@ -2,7 +2,7 @@ name: Build DDR5SPDEditor
 
 on:
   push:
-    branches: [ main, ci-test, fix-*, feat-* ]
+    branches: [ main, ci-test ]
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
@@ -18,11 +18,11 @@ jobs:
     container: ${{ matrix.sys.container }}
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         sys:
-          - { os: ubuntu-latest , shell: bash           , cxx: g++-13, release_name: DDR5SPDEditor-linux-x86_64-qt6.tar.gz }
-          - { os: ubuntu-latest , shell: 'alpine.sh {0}', cxx: g++   , release_name: DDR5SPDEditor-linux-x86_64-qt6-alpine.tar.gz }
+          - { os: ubuntu-latest , shell: bash           , cxx: g++-13, release_name: DDR5SPDEditor-linux-x86_64-qt6 }
+          - { os: ubuntu-latest , shell: 'alpine.sh {0}', cxx: g++   , release_name: DDR5SPDEditor-linux-x86_64-qt6-alpine }
           - { os: windows-latest, shell: 'msys2 {0}'    , cxx: g++   , release_name: DDR5SPDEditor-win-x86_64-qt6.7z }
         build_type: [Release]
 
@@ -42,7 +42,7 @@ jobs:
       uses: jirutka/setup-alpine@v1
       if: matrix.sys.shell == 'alpine.sh {0}'
       with:
-        packages: build-base cmake curl dialog eudev eudev-dev eudev-libs git libusb-dev linux-headers make ninja-build pkgconf pkgconf-dev py3-pip py3-setuptools python3 samurai sudo wget qt6-qtbase qt6-qtbase-dev qt6-qttools-dev linuxdeployqt
+        packages: build-base cmake curl dialog eudev eudev-dev eudev-libs git libusb-dev linux-headers make ninja-build pkgconf pkgconf-dev py3-pip py3-setuptools python3 samurai sudo wget qt6-qtbase qt6-qtbase-dev qt6-qttools-dev
 
     - name: Setup MSYS2 UCRT64
       if: matrix.sys.shell == 'msys2 {0}'
@@ -75,48 +75,10 @@ jobs:
     - name: Build CMake project
       run: cmake --build build
 
-    - name: Install linuxdeployqt (Ubuntu)
-      if: matrix.sys.shell == 'bash'
-      run: |
-        curl -L https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -o /usr/local/bin/linuxdeployqt
-        chmod +x /usr/local/bin/linuxdeployqt
-
     - name: Deploy Qt runtime (Windows)
       if: matrix.sys.shell == 'msys2 {0}'
       run: |
         /ucrt64/bin/windeployqt.exe --verbose 2 "build/${{ env.binary_orig }}.exe"
-      env:
-        binary_orig: 'DDR5SPDEditor'
-
-    - name: Deploy Qt runtime (Linux)
-      if: matrix.sys.shell != 'msys2 {0}'
-      run: |
-        if [ -x /usr/local/bin/linuxdeployqt ]; then
-          LINUXDEPLOYQT=/usr/local/bin/linuxdeployqt
-        else
-          LINUXDEPLOYQT=$(command -v linuxdeployqt || true)
-        fi
-
-        mkdir -p build/AppDir/usr/bin build/AppDir/usr/share/applications build/AppDir/usr/share/icons/hicolor/256x256/apps
-        cp build/${{ env.binary_orig }} build/AppDir/usr/bin/${{ env.binary_orig }}
-        cat > build/AppDir/usr/share/applications/${{ env.binary_orig }}.desktop <<'EOF'
-        [Desktop Entry]
-        Type=Application
-        Name=DDR5SPDEditor
-        Exec=DDR5SPDEditor
-        Icon=ddr5spdeditor
-        Categories=Utility;
-        EOF
-        if [ -f assets/icon.png ]; then cp assets/icon.png build/AppDir/usr/share/icons/hicolor/256x256/apps/ddr5spdeditor.png; fi
-
-        if [ -x "$LINUXDEPLOYQT" ]; then
-          "$LINUXDEPLOYQT" build/AppDir/usr/share/applications/${{ env.binary_orig }}.desktop -bundle-non-qt-libs -verbose=2
-        else
-          echo "linuxdeployqt not found" && exit 1
-        fi
-
-        mkdir -p dist
-        mv build/AppDir dist/${{ matrix.sys.release_name }}-contents
       env:
         binary_orig: 'DDR5SPDEditor'
 
@@ -127,7 +89,7 @@ jobs:
         if [[ "${{ env.is_windows_build}}" == "true" ]]; then
           7z -mx=9 a dist/${{ matrix.sys.release_name }} ./build/${{ env.binary_orig }}.exe ./build/*.dll ./build/plugins ./build/translations
         else
-          tar -czf dist/${{ matrix.sys.release_name }} -C dist "${{ matrix.sys.release_name }}-contents"
+          mv build/${{ env.binary_orig }} dist/${{ matrix.sys.release_name }}
         fi
       env:
         binary_orig: 'DDR5SPDEditor'
@@ -139,6 +101,7 @@ jobs:
         name: ${{ matrix.sys.release_name }}
         path: dist/${{ matrix.sys.release_name }}
         if-no-files-found: error
+        retention-days: 14
 
     - name: Make and upload release
       uses: softprops/action-gh-release@v2
