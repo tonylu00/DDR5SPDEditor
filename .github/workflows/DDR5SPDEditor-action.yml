@@ -50,7 +50,7 @@ jobs:
       with:
         msystem: UCRT64
         update: true
-        install: git make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-tools mingw-w64-ucrt-x86_64-7zip
+        install: git make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-tools mingw-w64-ucrt-x86_64-qt-creator mingw-w64-ucrt-x86_64-7zip
         pacboy: cmake:p ninja:p toolchain:p
 
     - name: Setup 'Toolchain test builds' PPA & install GCC 13
@@ -78,7 +78,7 @@ jobs:
     - name: Deploy Qt runtime (Windows)
       if: matrix.sys.shell == 'msys2 {0}'
       run: |
-        /ucrt64/bin/windeployqt.exe --verbose 2 "build/${{ env.binary_orig }}.exe"
+        /ucrt64/bin/windeployqt6.exe --verbose 2 "build/${{ env.binary_orig }}.exe"
       env:
         binary_orig: 'DDR5SPDEditor'
 
