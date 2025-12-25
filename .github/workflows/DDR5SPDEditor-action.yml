@@ -87,7 +87,13 @@ jobs:
       run: |
         mkdir -p dist
         if [[ "${{ env.is_windows_build}}" == "true" ]]; then
-          7z -mx=9 a dist/${{ matrix.sys.release_name }} ./build/${{ env.binary_orig }}.exe ./build/*.dll ./build/plugins ./build/translations
+          shopt -s nullglob
+          files=( "./build/${{ env.binary_orig }}.exe" )
+          files+=( ./build/*.dll )
+          [[ -d ./build/plugins ]] && files+=( ./build/plugins )
+          [[ -d ./build/translations ]] && files+=( ./build/translations )
+          echo "Packaging files: ${files[*]}"
+          7z -mx=9 a dist/${{ matrix.sys.release_name }} "${files[@]}"
         else
           mv build/${{ env.binary_orig }} dist/${{ matrix.sys.release_name }}
         fi
