@@ -53,7 +53,7 @@ jobs:
       with:
         msystem: ${{env.msys_system}}
         update: true
-        install: git make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-tools mingw-w64-ucrt-x86_64-qt-creator mingw-w64-ucrt-x86_64-7zip
+        install: git make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-tools mingw-w64-ucrt-x86_64-qt-creator zip
         pacboy: cmake:p ninja:p toolchain:p
 
     - name: Setup 'Toolchain test builds' PPA & install GCC 13
