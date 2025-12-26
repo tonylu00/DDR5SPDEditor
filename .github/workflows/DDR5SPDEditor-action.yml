@@ -9,6 +9,9 @@ on:
     branches: [ main, ci-test ]
   workflow_dispatch:
 
+env:
+  binary_orig: 'DDR5SPDEditor'
+  msys_system: 'ucrt64'
 jobs:
   build:
     permissions:
@@ -23,7 +26,7 @@ jobs:
         sys:
           - { os: ubuntu-latest , shell: bash           , cxx: g++-13, release_name: DDR5SPDEditor-linux-x86_64-qt6 }
           - { os: ubuntu-latest , shell: 'alpine.sh {0}', cxx: g++   , release_name: DDR5SPDEditor-linux-x86_64-qt6-alpine }
-          - { os: windows-latest, shell: 'msys2 {0}'    , cxx: g++   , release_name: DDR5SPDEditor-win-x86_64-qt6.7z }
+          - { os: windows-latest, shell: 'msys2 {0}'    , cxx: g++   , release_name: DDR5SPDEditor-win-x86_64-qt6.zip }
         build_type: [Release]
 
     defaults:
@@ -48,7 +51,7 @@ jobs:
       if: matrix.sys.shell == 'msys2 {0}'
       uses: msys2/setup-msys2@v2
       with:
-        msystem: UCRT64
+        msystem: ${{env.msys_system}}
         update: true
         install: git make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-tools mingw-w64-ucrt-x86_64-qt-creator mingw-w64-ucrt-x86_64-7zip
         pacboy: cmake:p ninja:p toolchain:p
@@ -78,27 +81,20 @@ jobs:
     - name: Deploy Qt runtime (Windows)
       if: matrix.sys.shell == 'msys2 {0}'
       run: |
-        /ucrt64/bin/windeployqt6.exe --verbose 2 "build/${{ env.binary_orig }}.exe"
-      env:
-        binary_orig: 'DDR5SPDEditor'
+        mkdir -p dist
+        /${{env.msys_system}}/bin/windeployqt6.exe --verbose 2 --dir dist "build/${{ env.binary_orig }}.exe"
+        ldd ${{ env.binary_orig }}.exe |grep ${{env.msys_system}} |awk -F '>' '{print $2}' |awk '{print $1}' | xargs -I {} cp {} dist/
+        cp build/${{ env.binary_orig }}.exe dist/
 
     - name: Prepare binaries and make archive with libs
       if: matrix.sys.release_name != ''
       run: |
-        mkdir -p dist
         if [[ "${{ env.is_windows_build}}" == "true" ]]; then
-          shopt -s nullglob
-          files=( "./build/${{ env.binary_orig }}.exe" )
-          files+=( ./build/*.dll )
-          [[ -d ./build/plugins ]] && files+=( ./build/plugins )
-          [[ -d ./build/translations ]] && files+=( ./build/translations )
-          echo "Packaging files: ${files[*]}"
-          7z -mx=9 a dist/${{ matrix.sys.release_name }} "${files[@]}"
+          zip -r dist/${{ matrix.sys.release_name }} dist/*
         else
           mv build/${{ env.binary_orig }} dist/${{ matrix.sys.release_name }}
         fi
       env:
-        binary_orig: 'DDR5SPDEditor'
         is_windows_build: ${{ startsWith( matrix.sys.os, 'windows' ) && 'true' || 'false' }}
 
     - name: Upload artifact
