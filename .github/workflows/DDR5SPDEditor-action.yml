@@ -83,7 +83,7 @@ jobs:
       run: |
         mkdir -p dist
         /${{env.msys_system}}/bin/windeployqt6.exe --verbose 2 --dir dist "build/${{ env.binary_orig }}.exe"
-        ldd ${{ env.binary_orig }}.exe |grep ${{env.msys_system}} |awk -F '>' '{print $2}' |awk '{print $1}' | xargs -I {} cp {} dist/
+        ldd build/${{ env.binary_orig }}.exe |grep ${{env.msys_system}} |awk -F '>' '{print $2}' |awk '{print $1}' | xargs -I {} cp {} dist/
         cp build/${{ env.binary_orig }}.exe dist/
 
     - name: Prepare binaries and make archive with libs
@@ -104,7 +104,7 @@ jobs:
         name: ${{ matrix.sys.release_name }}
         path: dist/${{ matrix.sys.release_name }}
         if-no-files-found: error
-        retention-days: 14
+        retention-days: 90
 
     - name: Make and upload release
       uses: softprops/action-gh-release@v2
