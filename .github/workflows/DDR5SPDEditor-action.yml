@@ -92,6 +92,7 @@ jobs:
         if [[ "${{ env.is_windows_build}}" == "true" ]]; then
           zip -r dist/${{ matrix.sys.release_name }} dist/*
         else
+          mkdir -p dist
           mv build/${{ env.binary_orig }} dist/${{ matrix.sys.release_name }}
         fi
       env:
